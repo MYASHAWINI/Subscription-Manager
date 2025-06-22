@@ -16,4 +16,10 @@ const subscriptionSchema = new mongoose.Schema({
     amount: { type: Number, required: true },
     status: { type: String, enum: ['Success', 'Failed', 'Pending'], required: true }
   }
+  renewalNotifications: [
+    {
+      date: { type: Date, required: true },
+      method: { type: String, enum: ['Email', 'SMS', 'Webhook'], required: true }
+    }
+  ]
 }, { timestamps: true });
