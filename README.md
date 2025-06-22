@@ -171,6 +171,19 @@ app.post('/webhook', express.raw({type: 'application/json'}), (req, res) => {
 
 ---
 
+✅ Summary
+
+| Step | Action                                         |
+| ---- | ---------------------------------------------- |
+| 1️⃣  | Configure Stripe SDK & .env                    |
+| 2️⃣  | Create Customer (on user registration)         |
+| 3️⃣  | Generate Checkout Session                      |
+| 4️⃣  | Listen to webhooks and store subscription info |
+| 5️⃣  | Support upgrades/downgrades                    |
+| 6️⃣  | Allow cancellation/resume                      |
+
+---
+
 1. 📁 **Sample Folder Structure** (Node.js + Express + Stripe + MongoDB)
 2. 📬 **Postman Collection Outline** (you can import/test your APIs)
 3. 💰 **Razorpay Flow** (parallel to the Stripe flow)
