@@ -60,7 +60,6 @@ async function sendRenewalReminder(toEmail, subscriptionDetails) {
       <p>Thank you!</p>
     `,
   };
-  await sgMail.send(msg);
 }
 
 2. Create Email Templates
