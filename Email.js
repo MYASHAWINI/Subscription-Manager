@@ -48,6 +48,21 @@ app.put('/subscription/pause/:userId', async (req, res) => {
     }
 });
 
+async function sendRenewalReminder(toEmail, subscriptionDetails) {
+  const msg = {
+    to: toEmail,
+    from: 'your_email@example.com',
+    subject: 'Your Subscription is Expiring Soon',
+    html: `
+      <p>Hi,</p>
+      <p>Your subscription for plan <strong>${subscriptionDetails.plan}</strong> is expiring on ${subscriptionDetails.endDate.toDateString()}.</p>
+      <p>Renew now to continue uninterrupted!</p>
+      <p>Thank you!</p>
+    `,
+  };
+  await sgMail.send(msg);
+}
+
 2. Create Email Templates
 
 <!DOCTYPE html>
