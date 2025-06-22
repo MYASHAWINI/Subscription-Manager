@@ -1,3 +1,7 @@
+const Subscription = mongoose.model('Subscription', subscriptionSchema);
+module.exports = Subscription;
+
+const mongoose = require('mongoose');
 const subscriptionSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   plan: { type: String, enum: ['Basic', 'Standard', 'Premium'], required: true },
