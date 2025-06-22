@@ -2,6 +2,17 @@ const stripe = require('../config/stripe');
 const User = require('../models/User');
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
+app.post('/webhook', async (req, res) => {
+    const event = req.body;
+    
+    if (event.type === 'invoice.payment_failed') {
+        const userId = event.data.object.customer;
+        await notifyUser(userId, 'Payment failed. Please update your payment details.');
+    }
+
+    res.sendStatus(200);
+});
+
 exports.stripeWebhook = async (req, res) => {
   let event;
   try {
