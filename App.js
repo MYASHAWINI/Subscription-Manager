@@ -74,8 +74,45 @@ const seedPlans = async () => {
 
 const Plan = require('./models/Plan'); // your Plan schema
 
-app.post('/subscribe', authMiddleware, async (req, res) => {
-  const { plan } = req.body;
+1. Subscription Management API Endpoints
+a) Create Subscription (after successful payment)
+
+app.post('/subscriptions', authMiddleware, async (req, res) => {
+  const { userId, plan, endDate, paymentDetails } = req.body;
+  const subscription = new Subscription({
+    userId,
+    plan,
+    status: 'Active',
+    startDate: new Date(),
+    endDate,
+    trialPeriod: false,
+    paymentDetails, // objects containing gateway, transactionId, amount, status
+  });
+  await subscription.save();
+  res.json({ success: true, subscription });
+});
+
+b) Get User Subscriptions
+  
+app.get('/subscriptions', authMiddleware, async (req, res) => {
+  const userId = req.user.id; // assuming auth middleware attaches user
+  const subscriptions = await Subscription.find({ userId });
+  res.json({ subscriptions });
+});
+
+c) Cancel a Subscription
+
+app.post('/subscriptions/:id/cancel', authMiddleware, async (req, res) => {
+  const { id } = req.params;
+  const subscription = await Subscription.findById(id);
+  if (subscription) {
+    subscription.status = 'Cancelled';
+    await subscription.save();
+    res.json({ success: true });
+  } else {
+    res.status(404).json({ error: 'Subscription not found' });
+  }
+});
   const userId = req.userId;
 
   try {
@@ -242,4 +279,10 @@ app.post('/webhook', (req, res) => {
 // --- Run server ---
 app.listen(3000, () => {
   console.log('Server running on http://localhost:3000');
+});
+
+// Example: notify 3 days before expiry
+const upcomingRenewals = await Subscription.find({
+  endDate: { $gte: new Date(), $lte: new Date(Date.now() + 3*24*60*60*1000) },
+  status: 'Active'
 });
