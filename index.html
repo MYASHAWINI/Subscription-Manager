@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Stripe Embedded Checkout</title>
+  <script src="https://js.stripe.com/v3/"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; }
+    .card-element { padding: 10px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 20px; width: 300px; }
+    button { padding: 10px 20px; font-size: 16px; }
+    #card-errors { color: red; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h2>Subscribe to a Plan</h2>
+  <form id="payment-form">
+    <label for="plan">Select Plan:</label>
+    <select id="plan" required>
+      <option value="basic">Basic</option>
+      <option value="premium">Premium</option>
+    </select>
+    <div>
+      <label>Credit Card:</label>
+      <div id="card-element" class="card-element"></div>
+      <div id="card-errors" role="alert"></div>
+    </div>
+    <button type="submit">Pay & Subscribe</button>
+  </form>
+
+  <script>
+    const stripe = Stripe('your_publishable_key'); // Replace with your Stripe publishable key
+    const elements = stripe.elements();
+
+    const style = {
+      base: { fontSize: '16px', color: '#32325d' }
+    };
+
+    const card = elements.create('card', { style });
+    card.mount('#card-element');
+
+    card.on('change', ({ error }) => {
+      document.getElementById('card-errors').textContent = error ? error.message : '';
+    });
+
+    document.getElementById('payment-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const plan = document.getElementById('plan').value;
+
+      // Call your backend to create PaymentIntent
+      const response = await fetch('/create-payment-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan }),
+      });
+      const data = await response.json();
+
+      if (!data.clientSecret) {
+        alert('Error creating payment.');
+        return;
+      }
+
+      // Confirm Card Payment
+      const result = await stripe.confirmCardPayment(data.clientSecret, {
+        payment_method: { card: card }
+      });
+
+      if (result.error) {
+        document.getElementById('card-errors').textContent = result.error.message;
+      } else {
+        if (result.paymentIntent.status === 'succeeded') {
+          alert('Payment successful! Your subscription is active.');
+          // Optionally, notify your backend for subscription update
+        }
+      }
+    });
+  </script>
+</body>
+</html>
+
+<!DOCTYPE html>  
+<html lang="en">  
+<head>  
+  <meta charset="UTF-8" />  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>  
+  <title>Stripe Embedded Checkout</title>  
+  <script src="https://js.stripe.com/v3/"></script>  
+  <style>  
+    body { font-family: Arial, sans-serif; margin: 40px; }  
+    .card-element { padding: 10px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 20px; width: 300px; }  
+    button { padding: 10px 20px; font-size: 16px; }  
+    #card-errors { color: red; margin-top: 10px; }  
+  </style>  
+</head>  
+<body>  
+  <h2>Subscribe to a Plan</h2>  
+  <form id="payment-form">  
+    <label for="plan">Select Plan:</label>  
+    <select id="plan" required>  
+      <option value="basic">Basic</option>  
+      <option value="premium">Premium</option>  
+    </select>  
+    <div>  
+      <label>Credit Card:</label>  
+      <
