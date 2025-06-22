@@ -125,6 +125,46 @@ app.put('/subscription/pause/:userId', async (req, res) => {
 
 5. Trigger Emails for Pause/Resume
 
+app.put('/subscription/pause/:userId', async (req, res) => {
+    try {
+        const subscription = await Subscription.findOne({ userId: req.params.userId }).populate('userId');
+        if (!subscription || subscription.status !== 'Active') {
+            return res.status(400).json({ message: 'Subscription cannot be paused' });
+        }
+
+        subscription.status = 'Paused';
+        subscription.pausedAt = new Date();
+        await subscription.save();
+
+        await sendEmail(subscription.userId.email, 'Subscription Paused', 
+            `Your subscription has been paused. Resume anytime in your account.`);
+
+        res.json({ message: 'Subscription paused successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error pausing subscription', error });
+    }
+});
+
+app.put('/subscription/resume/:userId', async (req, res) => {
+    try {
+        const subscription = await Subscription.findOne({ userId: req.params.userId }).populate('userId');
+        if (!subscription || subscription.status !== 'Paused') {
+            return res.status(400).json({ message: 'Subscription cannot be resumed' });
+        }
+
+        subscription.status = 'Active';
+        subscription.resumedAt = new Date();
+        await subscription.save();
+
+        await sendEmail(subscription.userId.email, 'Subscription Resumed', 
+            `Your subscription has been resumed. Enjoy uninterrupted service.`);
+
+        res.json({ message: 'Subscription resumed successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error resuming subscription', error });
+    }
+});
+
 app.put('/subscription/resume/:userId', async (req, res) => {
     const subscription = await Subscription.findOne({ userId: req.params.userId }).populate('userId');
     if (!subscription || subscription.status !== 'Paused') return res.status(400).json({ message: 'Subscription cannot be resumed' });
