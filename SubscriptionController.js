@@ -1,6 +1,17 @@
 const stripe = require('../config/stripe');
 const User = require('../models/User');
 
+const PlanSchema = new mongoose.Schema({
+  planId: { type: String, required: true, unique: true }, // e.g., 'basic', 'pro'
+  name: String,
+  price: Number,
+  durationInDays: Number,
+  features: [String],
+});
+
+const Plan = mongoose.model('Plan', PlanSchema);
+module.exports = Plan;
+
 exports.createCheckoutSession = async (req, res) => {
   const userId = req.user.id;
   const { priceId } = req.body;
