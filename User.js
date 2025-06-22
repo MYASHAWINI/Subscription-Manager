@@ -1,16 +1,26 @@
 const mongoose = require('mongoose');
 
-const userSchema = new mongoose.Schema({
-  email: String,
-  passwordHash: String,
-  stripeCustomerId: String,
-  subscription: {
-    subscriptionId: String,
-    priceId: String,
-    status: String,
-    currentPeriodEnd: Date,
-    trialEndsAt: Date
-  }
-});
+const subscriptionSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  plan: { type: String, enum: ['Basic', 'Standard', 'Premium'], required: true },
+  status: { type: String, enum: ['Active', 'Cancelled', 'Paused', 'Expired'], default: 'Active' },
+  startDate: { type: Date, default: Date.now },
+  endDate: { type: Date, required: true },
+  trialPeriod: { type: Boolean, default: false },
+  paymentDetails: {
+    gateway: { type: String, enum: ['Stripe', 'Razorpay'], required: true },
+    transactionId: { type: String, required: true },
+    amount: { type: Number, required: true },
+    currency: { type: String, default: 'INR' },
+    status: { type: String, enum: ['Success', 'Failed', 'Pending'], required: true }
+  },
+  renewalNotifications: [
+    {
+      date: { type: Date, required: true },
+      method: { type: String, enum: ['Email', 'SMS', 'Webhook'], required: true }
+    }
+  ]
+}, { timestamps: true });
 
-module.exports = mongoose.model('User', userSchema);
+const Subscription = mongoose.model('Subscription', subscriptionSchema);
+module.exports = Subscription;
