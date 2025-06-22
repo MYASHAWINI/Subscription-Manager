@@ -171,4 +171,150 @@ app.post('/webhook', express.raw({type: 'application/json'}), (req, res) => {
 
 ---
 
+1. 📁 **Sample Folder Structure** (Node.js + Express + Stripe + MongoDB)
+2. 📬 **Postman Collection Outline** (you can import/test your APIs)
+3. 💰 **Razorpay Flow** (parallel to the Stripe flow)
 
+---
+
+## 📁 **Sample Folder Structure**
+
+```
+subscription-manager/
+│
+├── config/
+│   ├── db.js                # MongoDB connection
+│   └── stripe.js            # Stripe config and SDK init
+│
+├── controllers/
+│   ├── authController.js
+│   ├── subscriptionController.js
+│   └── webhookController.js
+│
+├── models/
+│   ├── User.js
+│   ├── Plan.js
+│   └── Subscription.js
+│
+├── routes/
+│   ├── authRoutes.js
+│   ├── userRoutes.js
+│   ├── planRoutes.js
+│   └── subscriptionRoutes.js
+│
+├── utils/
+│   ├── sendEmail.js         # Nodemailer (optional)
+│   └── notifications.js     # Trial/renewal notifications
+│
+├── middleware/
+│   ├── authMiddleware.js    # JWT check
+│   └── adminMiddleware.js   # Admin access check
+│
+├── .env
+├── app.js                   # Main app setup
+└── server.js                # Server start point
+```
+
+---
+
+## 📬 **Postman Collection Outline**
+
+### 🔐 Auth
+
+* `POST /api/auth/register` – Create user
+* `POST /api/auth/login` – Get token
+* `GET /api/auth/me` – Profile
+
+### 💳 Subscription
+
+* `POST /api/subscribe/create-checkout` – Stripe checkout session
+* `POST /api/subscribe/change-plan` – Upgrade/downgrade
+* `POST /api/subscribe/cancel` – Cancel subscription
+* `POST /api/subscribe/resume` – Resume
+* `POST /api/subscribe/webhook` – Webhook (Stripe events)
+
+### 📦 Plans
+
+* `GET /api/plans/` – List all
+* `POST /api/plans/` – Create (admin)
+* `PUT /api/plans/:id` – Update (admin)
+* `DELETE /api/plans/:id` – Delete (admin)
+
+### 👤 User
+
+* `GET /api/user/subscriptions` – Current subscription
+* `GET /api/user/billing-history` – Past invoices
+
+---
+
+## 💰 **Razorpay Payment Flow**
+
+### 🔁 1. Create Plan (one-time setup)
+
+Use Razorpay Dashboard or API to define:
+
+```json
+{
+  "period": "monthly",
+  "interval": 1,
+  "item": {
+    "name": "Basic Plan",
+    "amount": 99900,
+    "currency": "INR"
+  }
+}
+```
+
+### 👤 2. Create Customer
+
+```js
+const customer = await razorpay.customers.create({
+  name: "John Doe",
+  email: "john@example.com",
+  contact: "9123456789"
+});
+```
+
+### 📦 3. Create Subscription
+
+```js
+const subscription = await razorpay.subscriptions.create({
+  plan_id: "plan_xyz",
+  customer_notify: 1,
+  total_count: 12,
+  customer_id: customer.id,
+  start_at: <timestamp>
+});
+```
+
+### 🌐 4. Generate Payment Page
+
+* Send the returned `short_url` to frontend or embed Razorpay Checkout.
+
+### 🧾 5. Handle Webhooks
+
+Events to listen for:
+
+* `subscription.activated`
+* `subscription.charged`
+* `payment.failed`
+* `subscription.completed`
+
+```js
+app.post('/api/subscribe/webhook', (req, res) => {
+  // Verify Razorpay signature if needed
+  const event = req.body.event;
+  if (event === 'subscription.charged') {
+    // Save payment success
+  }
+  res.status(200).send("OK");
+});
+```
+
+### ❌ 6. Cancel Subscription
+
+```js
+await razorpay.subscriptions.cancel(subscription_id, { cancel_at_cycle_end: true });
+```
+
+---
