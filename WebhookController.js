@@ -13,6 +13,51 @@ app.post('/webhook', async (req, res) => {
     res.sendStatus(200);
 });
 
+app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  const endpointSecret = 'your_stripe_webhook_secret';
+
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+  } catch (err) {
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object;
+
+    // Retrieve customer info, payment details, etc.
+    const plan = session.metadata.plan;
+    const transactionId = session.payment_intent;
+    const amount = session.amount_total;
+    const currency = session.currency;
+
+    // Create subscription record
+    const userId = /* retrieve from session or your storage */;
+    const endDate = new Date(); // calculate based on plan
+    endDate.setMonth(endDate.getMonth() + 1); // e.g., 1 month
+
+    await new Subscription({
+      userId,
+      plan,
+      status: 'Active',
+      startDate: new Date(),
+      endDate,
+      paymentDetails: {
+        gateway: 'Stripe',
+        transactionId,
+        amount,
+        currency,
+        status: 'Success'
+      }
+    }).save();
+
+    // You might notify user here as well
+  }
+  res.json({ received: true });
+});
+
 exports.stripeWebhook = async (req, res) => {
   let event;
   try {
