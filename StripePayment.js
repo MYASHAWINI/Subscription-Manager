@@ -4,19 +4,17 @@
 
 When a user registers, create a **Stripe customer**:
 
-```js
 const customer = await stripe.customers.create({
   email: user.email,
 });
 user.stripeCustomerId = customer.id;
-```
+
 ---
 
 ### 📦 **2. Create Checkout Session**
 
 Send product/price IDs from frontend to create a session:
 
-```js
 const session = await stripe.checkout.sessions.create({
   customer: user.stripeCustomerId,
   line_items: [{
@@ -28,7 +26,7 @@ const session = await stripe.checkout.sessions.create({
   cancel_url: `${DOMAIN}/cancel`,
 });
 res.json({ url: session.url });
-```
+
 ---
 
 ### 🧾 **3. Handle Webhooks**
@@ -41,7 +39,6 @@ Setup a Stripe webhook listener for these events:
 * `customer.subscription.updated`
 * `customer.subscription.deleted`
 
-```js
 app.post('/api/subscribe/webhook', express.raw({type: 'application/json'}), (req, res) => {
   const sig = req.headers['stripe-signature'];
   let event;
@@ -64,12 +61,12 @@ app.post('/api/subscribe/webhook', express.raw({type: 'application/json'}), (req
     res.status(400).send(`Webhook error: ${err.message}`);
   }
 });
-```
+
 ---
 
 ### 🔄 **4. Upgrade / Downgrade Plan**
 
-```js
+js
 await stripe.subscriptions.update(subscriptionId, {
   items: [{
     id: subscriptionItemId,
@@ -77,21 +74,20 @@ await stripe.subscriptions.update(subscriptionId, {
   }],
   proration_behavior: 'create_prorations',
 });
-```
+
 ---
 
 ### ❌ **5. Cancel Subscription**
 
-```js
 await stripe.subscriptions.del(subscriptionId); // or use .update with cancel_at_period_end
-```
+
 ---
 
 ### ▶️ **6. Resume Subscription**
 
 If canceled with `cancel_at_period_end`, resume it before it ends:
 
-```js
+js
 await stripe.subscriptions.update(subscriptionId, {
   cancel_at_period_end: false,
 });
@@ -103,6 +99,35 @@ module.exports = stripe;
 ✅ Stripe Implementation
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
+app.post('/api/subscriptions', async (req, res) => {
+  const { userId, planId } = req.body;
+  const user = await User.findById(userId);
+  
+  const product = await stripe.products.create({ name: planId });
+  const price = await stripe.prices.create({
+    product: product.id,
+    unit_amount: 1000, // amount in cents
+    currency: 'usd',
+  });
+  
+  const subscription = await stripe.subscriptions.create({
+    customer: user.stripeCustomerId,
+    items: [{ price: price.id }],
+    expand: ['latest_invoice.payment_intent'],
+  });
+
+  // Save subscription details in MongoDB
+  await Subscription.create({
+    userId,
+    stripeSubscriptionId: subscription.id,
+    planId,
+    status: 'active',
+    startDate: new Date(),
+  });
+
+  res.json(subscription);
+});
 
 async function pauseSubscription(subscriptionId) {
     const subscription = await stripe.subscriptions.update(subscriptionId, {
@@ -260,18 +285,17 @@ exports.stripeWebhook = async (req, res) => {
 
   res.json({ received: true });
 };
-```
+
 
 > ⚠️ **Important**: Webhook route must be raw body middleware:
 
-```js
 app.post('/api/subscribe/webhook', express.raw({ type: 'application/json' }), webhookController.stripeWebhook);
-```
+
 ---
 
 ## 🔄 **5. Change Plan (Upgrade/Downgrade)**
 
-```js
+js
 exports.changePlan = async (req, res) => {
   const user = await User.findById(req.user.id);
   const subscriptionId = user.subscription.subscriptionId;
@@ -288,24 +312,24 @@ exports.changePlan = async (req, res) => {
   await user.save();
   res.json({ updated });
 };
-```
+
 ---
 
 ## ❌ **6. Cancel / Resume Subscription**
 
 ### Cancel
 
-```js
+js
 await stripe.subscriptions.update(subscriptionId, {
   cancel_at_period_end: true,
 });
-```
+
 
 ### Resume
 
-```js
+js
 await stripe.subscriptions.update(subscriptionId, {
   cancel_at_period_end: false,
 });
-```
+
 ---
