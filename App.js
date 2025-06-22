@@ -147,6 +147,26 @@ app.post('/login', async (req, res) => {
   }
 });
 
+app.post('/create-payment-intent', async (req, res) => {
+  const { plan } = req.body;
+
+  // Fetch plan details from your database
+  const planDetails = await Plan.findOne({ planId: plan });
+  if (!planDetails) return res.status(400).json({ error: 'Invalid plan' });
+
+  try {
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: planDetails.price,
+      currency: 'usd',
+      metadata: { plan: plan },
+    });
+
+    res.json({ clientSecret: paymentIntent.client_secret });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to create payment intent' });
+  }
+});
+
 // --- Create Stripe Checkout Session ---
 app.post('/create-checkout-session', authMiddleware, async (req, res) => {
   const { plan } = req.body;
